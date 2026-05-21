@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Settings - Expense Tracker</title>
+
+  <link rel="stylesheet" href="css/settings.css" />
+</head>
+<body>
+
+  <div class="settings-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2>Expense Tracker</h2>
+
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="transactions.html">Transactions</a>
+        <a href="reports.html">Reports</a>
+        <a href="settings.html" class="active">Settings</a>
+      </nav>
+
+      <button id="logoutBtn" class="logout-btn">Logout</button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+      <header class="page-header">
+        <div>
+          <h1>Settings</h1>
+          <p>Manage your profile, password, categories, and account options.</p>
+        </div>
+      </header>
+
+      <!-- Profile Settings -->
+      <section class="settings-card">
+        <h2>Profile Information</h2>
+
+        <form id="profileForm">
+
+          <div class="form-group">
+            <label for="profileName">Full Name</label>
+            <input type="text" id="profileName" placeholder="Enter your name" />
+            <small class="error-message" id="profileNameError"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="profileEmail">Email</label>
+            <input type="email" id="profileEmail" placeholder="Enter your email" />
+            <small class="error-message" id="profileEmailError"></small>
+          </div>
+
+          <button type="submit" class="primary-btn">Save Profile</button>
+
+        </form>
+      </section>
+
+      <!-- Password Change -->
+      <section class="settings-card">
+        <h2>Change Password</h2>
+
+        <form id="passwordForm">
+
+          <div class="form-group">
+            <label for="currentPassword">Current Password</label>
+            <input type="password" id="currentPassword" placeholder="Enter current password" />
+            <small class="error-message" id="currentPasswordError"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="newPassword">New Password</label>
+            <input type="password" id="newPassword" placeholder="Enter new password" />
+            <small class="error-message" id="newPasswordError"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Confirm New Password</label>
+            <input type="password" id="confirmPassword" placeholder="Confirm new password" />
+            <small class="error-message" id="confirmPasswordError"></small>
+          </div>
+
+          <button type="submit" class="primary-btn">Update Password</button>
+
+        </form>
+      </section>
+
+      <!-- Category Management -->
+      <section class="settings-card">
+        <h2>Category Management</h2>
+
+        <div class="category-add-row">
+          <input type="text" id="categoryInput" placeholder="Enter category name" />
+          <button id="addCategoryBtn" class="primary-btn">Add Category</button>
+        </div>
+
+        <ul id="categoryList" class="category-list">
+          <li>No categories available</li>
+        </ul>
+      </section>
+
+      <!-- Danger Zone -->
+      <section class="settings-card danger-card">
+        <h2>Danger Zone</h2>
+        <p>Deleting your account will permanently remove your profile and expense data.</p>
+
+        <button id="deleteAccountBtn" class="danger-btn">Delete Account</button>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="js/settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Reports - Expense Tracker</title>
+
+  <link rel="stylesheet" href="css/reports.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="reports-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2>Expense Tracker</h2>
+
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="transactions.html">Transactions</a>
+        <a href="reports.html" class="active">Reports</a>
+        <a href="settings.html">Settings</a>
+      </nav>
+
+      <button id="logoutBtn" class="logout-btn">Logout</button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+      <header class="page-header">
+        <div>
+          <h1>Reports</h1>
+          <p>View monthly spending patterns and category-wise analysis.</p>
+        </div>
+
+        <button id="downloadPdfBtn" class="primary-btn">Download PDF</button>
+      </header>
+
+      <!-- Month Filter -->
+      <section class="filter-card">
+        <label for="monthPicker">Select Month</label>
+        <input type="month" id="monthPicker" />
+      </section>
+
+      <!-- Summary Cards -->
+      <section class="summary-grid">
+
+        <div class="summary-card">
+          <p>Selected Month Total</p>
+          <h2 id="selectedMonthTotal">₹0.00</h2>
+        </div>
+
+        <div class="summary-card">
+          <p>Total Transactions</p>
+          <h2 id="totalTransactions">0</h2>
+        </div>
+
+        <div class="summary-card">
+          <p>Highest Spending Category</p>
+          <h2 id="highestCategory">-</h2>
+        </div>
+
+      </section>
+
+      <!-- Charts -->
+      <section class="charts-grid">
+
+        <div class="chart-card">
+          <h3>Category-wise Spending</h3>
+          <canvas id="categoryBarChart"></canvas>
+        </div>
+
+        <div class="chart-card">
+          <h3>Daily Spending Trend</h3>
+          <canvas id="dailyLineChart"></canvas>
+        </div>
+
+      </section>
+
+      <!-- Top Categories -->
+      <section class="top-card">
+        <h3>Top Categories</h3>
+
+        <ul id="topCategoriesList">
+          <li>No category data available</li>
+        </ul>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="js/reports.js"></script>
+</body>
+</html>
