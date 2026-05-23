@@ -1,7 +1,7 @@
-// Temporary login protection
-const isLoggedIn = localStorage.getItem("isLoggedIn");
+const token = localStorage.getItem("token");
+const user = JSON.parse(localStorage.getItem("user"));
 
-if (isLoggedIn !== "true") {
+if (!token || !user) {
   alert("Please login first");
   window.location.href = "index.html";
 }
@@ -9,11 +9,13 @@ if (isLoggedIn !== "true") {
 // Logout
 const logoutBtn = document.getElementById("logoutBtn");
 
-logoutBtn.addEventListener("click", () => {
-  localStorage.removeItem("isLoggedIn");
-  alert("Logged out successfully");
-  window.location.href = "index.html";
-});
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    localStorage.clear();
+    alert("Logged out successfully");
+    window.location.href = "index.html";
+  });
+}
 
 // DOM elements
 const profileForm = document.getElementById("profileForm");
@@ -37,25 +39,26 @@ const categoryList = document.getElementById("categoryList");
 
 const deleteAccountBtn = document.getElementById("deleteAccountBtn");
 
-// Temporary default profile data
-profileName.value = "Demo User";
-profileEmail.value = "demo@example.com";
+// Real logged-in user data
+if (profileName) {
+  profileName.value = user.name || "";
+}
 
-// Temporary categories
-let categories = [
-  "Food",
-  "Transport",
-  "Shopping",
-  "Utilities",
-  "Entertainment"
-];
+if (profileEmail) {
+  profileEmail.value = user.email || "";
+}
+
+// Empty categories first, no demo data
+let categories = [];
 
 // Render categories
 function renderCategories() {
+  if (!categoryList) return;
+
   categoryList.innerHTML = "";
 
   if (categories.length === 0) {
-    categoryList.innerHTML = "<li>No categories available</li>";
+    categoryList.innerHTML = "<li>No categories added yet</li>";
     return;
   }
 
@@ -74,132 +77,140 @@ function renderCategories() {
 }
 
 // Profile update
-profileForm.addEventListener("submit", (event) => {
-  event.preventDefault();
+if (profileForm) {
+  profileForm.addEventListener("submit", (event) => {
+    event.preventDefault();
 
-  profileNameError.textContent = "";
-  profileEmailError.textContent = "";
+    profileNameError.textContent = "";
+    profileEmailError.textContent = "";
 
-  const name = profileName.value.trim();
-  const email = profileEmail.value.trim();
+    const name = profileName.value.trim();
+    const email = profileEmail.value.trim();
 
-  let isValid = true;
+    let isValid = true;
 
-  if (name === "") {
-    profileNameError.textContent = "Name is required";
-    isValid = false;
-  }
+    if (name === "") {
+      profileNameError.textContent = "Name is required";
+      isValid = false;
+    }
 
-  if (email === "") {
-    profileEmailError.textContent = "Email is required";
-    isValid = false;
-  }
+    if (email === "") {
+      profileEmailError.textContent = "Email is required";
+      isValid = false;
+    }
 
-  if (!isValid) {
-    return;
-  }
+    if (!isValid) return;
 
-  alert("Profile updated successfully!");
-});
+    const updatedUser = {
+      ...user,
+      name,
+      email
+    };
+
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+
+    alert("Profile updated locally");
+  });
+}
 
 // Password change
-passwordForm.addEventListener("submit", (event) => {
-  event.preventDefault();
+if (passwordForm) {
+  passwordForm.addEventListener("submit", (event) => {
+    event.preventDefault();
 
-  currentPasswordError.textContent = "";
-  newPasswordError.textContent = "";
-  confirmPasswordError.textContent = "";
+    currentPasswordError.textContent = "";
+    newPasswordError.textContent = "";
+    confirmPasswordError.textContent = "";
 
-  const current = currentPassword.value.trim();
-  const newPass = newPassword.value.trim();
-  const confirmPass = confirmPassword.value.trim();
+    const current = currentPassword.value.trim();
+    const newPass = newPassword.value.trim();
+    const confirmPass = confirmPassword.value.trim();
 
-  let isValid = true;
+    let isValid = true;
 
-  if (current === "") {
-    currentPasswordError.textContent = "Current password is required";
-    isValid = false;
-  }
+    if (current === "") {
+      currentPasswordError.textContent = "Current password is required";
+      isValid = false;
+    }
 
-  if (newPass === "") {
-    newPasswordError.textContent = "New password is required";
-    isValid = false;
-  } else if (newPass.length < 8) {
-    newPasswordError.textContent = "Password must be at least 8 characters";
-    isValid = false;
-  }
+    if (newPass === "") {
+      newPasswordError.textContent = "New password is required";
+      isValid = false;
+    } else if (newPass.length < 8) {
+      newPasswordError.textContent = "Password must be at least 8 characters";
+      isValid = false;
+    }
 
-  if (confirmPass === "") {
-    confirmPasswordError.textContent = "Please confirm your new password";
-    isValid = false;
-  } else if (newPass !== confirmPass) {
-    confirmPasswordError.textContent = "Passwords do not match";
-    isValid = false;
-  }
+    if (confirmPass === "") {
+      confirmPasswordError.textContent = "Please confirm your new password";
+      isValid = false;
+    } else if (newPass !== confirmPass) {
+      confirmPasswordError.textContent = "Passwords do not match";
+      isValid = false;
+    }
 
-  if (!isValid) {
-    return;
-  }
+    if (!isValid) return;
 
-  alert("Password updated successfully!");
-  passwordForm.reset();
-});
+    alert("Password update backend will be added later");
+    passwordForm.reset();
+  });
+}
 
-// Add category
-addCategoryBtn.addEventListener("click", () => {
-  const categoryName = categoryInput.value.trim();
+// Add category locally
+if (addCategoryBtn) {
+  addCategoryBtn.addEventListener("click", () => {
+    const categoryName = categoryInput.value.trim();
 
-  if (categoryName === "") {
-    alert("Please enter category name");
-    return;
-  }
+    if (categoryName === "") {
+      alert("Please enter category name");
+      return;
+    }
 
-  const alreadyExists = categories.some(
-    (category) => category.toLowerCase() === categoryName.toLowerCase()
-  );
+    const alreadyExists = categories.some(
+      (category) => category.toLowerCase() === categoryName.toLowerCase()
+    );
 
-  if (alreadyExists) {
-    alert("Category already exists");
-    return;
-  }
+    if (alreadyExists) {
+      alert("Category already exists");
+      return;
+    }
 
-  categories.push(categoryName);
-  categoryInput.value = "";
+    categories.push(categoryName);
+    categoryInput.value = "";
 
-  renderCategories();
+    renderCategories();
 
-  alert("Category added successfully!");
-});
+    alert("Category added locally");
+  });
+}
 
 // Remove category
-function removeCategory(index) {
+window.removeCategory = function (index) {
   const confirmRemove = confirm("Are you sure you want to remove this category?");
 
-  if (!confirmRemove) {
-    return;
-  }
+  if (!confirmRemove) return;
 
   categories.splice(index, 1);
   renderCategories();
 
-  alert("Category removed successfully!");
-}
+  alert("Category removed");
+};
 
 // Delete account
-deleteAccountBtn.addEventListener("click", () => {
-  const confirmDelete = confirm(
-    "Are you sure you want to delete your account? This action cannot be undone."
-  );
+if (deleteAccountBtn) {
+  deleteAccountBtn.addEventListener("click", () => {
+    const confirmDelete = confirm(
+      "Are you sure you want to delete your account? This action cannot be undone."
+    );
 
-  if (!confirmDelete) {
-    return;
-  }
+    if (!confirmDelete) return;
 
-  localStorage.removeItem("isLoggedIn");
+    localStorage.clear();
 
-  alert("Account deleted successfully!");
-  window.location.href = "index.html";
-});
+    alert("Account deleted locally");
+    window.location.href = "index.html";
+  });
+}
 
 // Initial load
 renderCategories();

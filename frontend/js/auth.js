@@ -1,12 +1,11 @@
-// Get tab buttons
+const API_BASE_URL = "http://localhost:5000/api";
+
 const loginTab = document.getElementById("loginTab");
 const registerTab = document.getElementById("registerTab");
-
-// Get forms
 const loginForm = document.getElementById("loginForm");
 const registerForm = document.getElementById("registerForm");
 
-// Switch to Login form
+// Tab switching
 loginTab.addEventListener("click", () => {
   loginTab.classList.add("active");
   registerTab.classList.remove("active");
@@ -15,7 +14,6 @@ loginTab.addEventListener("click", () => {
   registerForm.classList.add("hidden");
 });
 
-// Switch to Register form
 registerTab.addEventListener("click", () => {
   registerTab.classList.add("active");
   loginTab.classList.remove("active");
@@ -24,89 +22,92 @@ registerTab.addEventListener("click", () => {
   loginForm.classList.add("hidden");
 });
 
-// Login form submit
-loginForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-
-  const email = document.getElementById("loginEmail").value.trim();
-  const password = document.getElementById("loginPassword").value.trim();
-
-  const emailError = document.getElementById("loginEmailError");
-  const passwordError = document.getElementById("loginPasswordError");
-
-  emailError.textContent = "";
-  passwordError.textContent = "";
-
-  let isValid = true;
-
-  if (email === "") {
-    emailError.textContent = "Email is required";
-    isValid = false;
-  }
-
-  if (password === "") {
-    passwordError.textContent = "Password is required";
-    isValid = false;
-  }
-
-  if (!isValid) {
-    return;
-  }
-
-  // Temporary login check
-  // Later we replace this with backend API call
-  localStorage.setItem("isLoggedIn", "true");
-
-  alert("Login successful!");
-
-  window.location.href = "dashboard.html";
-});
-
-// Register form submit
-registerForm.addEventListener("submit", (event) => {
-  event.preventDefault();
+// Register
+registerForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
   const name = document.getElementById("registerName").value.trim();
   const email = document.getElementById("registerEmail").value.trim();
   const password = document.getElementById("registerPassword").value.trim();
 
-  const nameError = document.getElementById("registerNameError");
-  const emailError = document.getElementById("registerEmailError");
-  const passwordError = document.getElementById("registerPasswordError");
-
-  nameError.textContent = "";
-  emailError.textContent = "";
-  passwordError.textContent = "";
-
-  let isValid = true;
-
-  if (name === "") {
-    nameError.textContent = "Full name is required";
-    isValid = false;
-  }
-
-  if (email === "") {
-    emailError.textContent = "Email is required";
-    isValid = false;
-  }
-
-  if (password === "") {
-    passwordError.textContent = "Password is required";
-    isValid = false;
-  } else if (password.length < 8) {
-    passwordError.textContent = "Password must be at least 8 characters";
-    isValid = false;
-  }
-
-  if (!isValid) {
+  if (!name || !email || !password) {
+    alert("Please fill all fields");
     return;
   }
 
-  alert("Registration successful! Please login now.");
+  if (password.length < 8) {
+    alert("Password must be at least 8 characters");
+    return;
+  }
 
-  // After register, show login form
-  loginTab.click();
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        password
+      })
+    });
 
-  // Clear register form
-  registerForm.reset();
+    const data = await response.json();
+
+    if (!data.success) {
+      alert(data.message || "Registration failed");
+      return;
+    }
+
+    alert("Registration successful. Please login now.");
+    registerForm.reset();
+    loginTab.click();
+  } catch (error) {
+    console.error(error);
+    alert("Server error. Please try again.");
+  }
+});
+
+// Login
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value.trim();
+
+  if (!email || !password) {
+    alert("Please enter email and password");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email,
+        password
+      })
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      alert(data.message || "Login failed");
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+    localStorage.setItem("isLoggedIn", "true");
+
+    alert("Login successful");
+    window.location.href = "dashboard.html";
+  } catch (error) {
+    console.error(error);
+    alert("Server error. Please try again.");
+  }
 });

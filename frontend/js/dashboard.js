@@ -1,239 +1,180 @@
-// Temporary login protection
-const isLoggedIn = localStorage.getItem("isLoggedIn");
+const API_BASE_URL = "http://localhost:5000/api";
 
-if (isLoggedIn !== "true") {
+const token = localStorage.getItem("token");
+const user = JSON.parse(localStorage.getItem("user"));
+
+if (!token) {
   alert("Please login first");
   window.location.href = "index.html";
 }
 
-// Logout functionality
 const logoutBtn = document.getElementById("logoutBtn");
+const recentTransactionsBody = document.getElementById("recentTransactionsBody");
 
-logoutBtn.addEventListener("click", () => {
-  localStorage.removeItem("isLoggedIn");
-  alert("Logged out successfully");
-  window.location.href = "index.html";
-});
+const thisMonthAmount = document.getElementById("thisMonthAmount");
+const allTimeAmount = document.getElementById("allTimeAmount");
+const averageDailyAmount = document.getElementById("averageDailyAmount");
+const topCategory = document.getElementById("topCategory");
 
-// Temporary sample expense data
-// Later this data will come from MySQL using backend API
-const expenses = [
-  {
-    date: "2026-05-01",
-    category: "Food",
-    description: "Lunch",
-    amount: 250
-  },
-  {
-    date: "2026-05-03",
-    category: "Transport",
-    description: "Bus pass",
-    amount: 500
-  },
-  {
-    date: "2026-05-05",
-    category: "Shopping",
-    description: "Shoes",
-    amount: 1200
-  },
-  {
-    date: "2026-05-07",
-    category: "Food",
-    description: "Dinner",
-    amount: 350
-  },
-  {
-    date: "2026-04-15",
-    category: "Utilities",
-    description: "Mobile recharge",
-    amount: 299
-  }
-];
+let expenses = [];
 
-// Format amount as Indian Rupees
-function formatCurrency(amount) {
-  return "₹" + amount.toFixed(2);
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    localStorage.clear();
+    window.location.href = "index.html";
+  });
 }
 
-// Calculate KPI cards
-function loadKPICards() {
-  const currentMonth = "2026-05";
+async function fetchExpenses() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/expenses`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
-  const thisMonthExpenses = expenses.filter((expense) =>
-    expense.date.startsWith(currentMonth)
-  );
+    const data = await response.json();
+
+    if (!data.success) {
+      alert(data.message || "Failed to load dashboard data");
+      return;
+    }
+
+    expenses = data.expenses || [];
+
+    updateDashboard();
+    renderRecentTransactions();
+    renderCharts();
+  } catch (error) {
+    console.error(error);
+    alert("Server error while loading dashboard");
+  }
+}
+
+function updateDashboard() {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const thisMonthExpenses = expenses.filter((expense) => {
+    const expenseDate = new Date(expense.expense_date);
+    return (
+      expenseDate.getMonth() === currentMonth &&
+      expenseDate.getFullYear() === currentYear
+    );
+  });
 
   const thisMonthTotal = thisMonthExpenses.reduce(
-    (sum, expense) => sum + expense.amount,
+    (sum, expense) => sum + Number(expense.amount),
     0
   );
 
   const allTimeTotal = expenses.reduce(
-    (sum, expense) => sum + expense.amount,
+    (sum, expense) => sum + Number(expense.amount),
     0
   );
 
-  const today = new Date();
-  const daysElapsed = today.getDate();
-
-  const averageDailySpend = thisMonthTotal / daysElapsed;
+  const averageDaily = thisMonthTotal / 30;
 
   const categoryTotals = {};
 
-  thisMonthExpenses.forEach((expense) => {
-    if (categoryTotals[expense.category]) {
-      categoryTotals[expense.category] += expense.amount;
-    } else {
-      categoryTotals[expense.category] = expense.amount;
+  expenses.forEach((expense) => {
+    const category = expense.category_id?.name || "Other";
+    categoryTotals[category] =
+      (categoryTotals[category] || 0) + Number(expense.amount);
+  });
+
+  let highestCategory = "No data";
+  let highestAmount = 0;
+
+  Object.keys(categoryTotals).forEach((category) => {
+    if (categoryTotals[category] > highestAmount) {
+      highestAmount = categoryTotals[category];
+      highestCategory = category;
     }
   });
 
-  let topCategory = "-";
-  let highestAmount = 0;
-
-  for (let category in categoryTotals) {
-    if (categoryTotals[category] > highestAmount) {
-      highestAmount = categoryTotals[category];
-      topCategory = category;
-    }
-  }
-
-  document.getElementById("thisMonthTotal").textContent =
-    formatCurrency(thisMonthTotal);
-
-  document.getElementById("allTimeTotal").textContent =
-    formatCurrency(allTimeTotal);
-
-  document.getElementById("averageDailySpend").textContent =
-    formatCurrency(averageDailySpend);
-
-  document.getElementById("topCategory").textContent = topCategory;
+  if (thisMonthAmount) thisMonthAmount.textContent = `₹${thisMonthTotal.toFixed(2)}`;
+  if (allTimeAmount) allTimeAmount.textContent = `₹${allTimeTotal.toFixed(2)}`;
+  if (averageDailyAmount) averageDailyAmount.textContent = `₹${averageDaily.toFixed(2)}`;
+  if (topCategory) topCategory.textContent = highestCategory;
 }
 
-// Load recent transactions
-function loadRecentTransactions() {
-  const tableBody = document.getElementById("recentTransactionsBody");
+function renderRecentTransactions() {
+  if (!recentTransactionsBody) return;
 
-  tableBody.innerHTML = "";
+  recentTransactionsBody.innerHTML = "";
 
-  const recentExpenses = expenses.slice(0, 5);
-
-  if (recentExpenses.length === 0) {
-    tableBody.innerHTML = `
+  if (expenses.length === 0) {
+    recentTransactionsBody.innerHTML = `
       <tr>
-        <td colspan="4">No recent transactions</td>
+        <td colspan="4" style="text-align:center;">No expenses found</td>
       </tr>
     `;
     return;
   }
 
+  const recentExpenses = expenses.slice(0, 5);
+
   recentExpenses.forEach((expense) => {
+    const date = new Date(expense.expense_date).toLocaleDateString("en-IN");
+    const category = expense.category_id?.name || "Other";
+
     const row = document.createElement("tr");
 
     row.innerHTML = `
-      <td>${expense.date}</td>
-      <td>${expense.category}</td>
-      <td>${expense.description}</td>
-      <td>${formatCurrency(expense.amount)}</td>
+      <td>${date}</td>
+      <td>${category}</td>
+      <td>${expense.description || "-"}</td>
+      <td>₹${Number(expense.amount).toFixed(2)}</td>
     `;
 
-    tableBody.appendChild(row);
+    recentTransactionsBody.appendChild(row);
   });
 }
 
-// Monthly Bar Chart
-function loadMonthlyBarChart() {
-  const monthlyTotals = {
-    Jan: 0,
-    Feb: 0,
-    Mar: 0,
-    Apr: 299,
-    May: 2300,
-    Jun: 0,
-    Jul: 0,
-    Aug: 0,
-    Sep: 0,
-    Oct: 0,
-    Nov: 0,
-    Dec: 0
-  };
+function renderCharts() {
+  const monthlyChartCanvas = document.getElementById("monthlyBarChart");
+  const categoryChartCanvas = document.getElementById("categoryPieChart");
 
-  const ctx = document.getElementById("monthlyBarChart");
+  if (!monthlyChartCanvas || !categoryChartCanvas) return;
 
-  new Chart(ctx, {
+  const monthlyTotals = {};
+  const categoryTotals = {};
+
+  expenses.forEach((expense) => {
+    const date = new Date(expense.expense_date);
+    const month = date.toLocaleString("default", { month: "short" });
+    const category = expense.category_id?.name || "Other";
+
+    monthlyTotals[month] = (monthlyTotals[month] || 0) + Number(expense.amount);
+    categoryTotals[category] = (categoryTotals[category] || 0) + Number(expense.amount);
+  });
+
+  new Chart(monthlyChartCanvas, {
     type: "bar",
     data: {
       labels: Object.keys(monthlyTotals),
       datasets: [
         {
           label: "Monthly Expenses",
-          data: Object.values(monthlyTotals),
-          backgroundColor: "#2E75B6"
+          data: Object.values(monthlyTotals)
         }
       ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          display: true
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  });
-}
-
-// Category Pie Chart
-function loadCategoryPieChart() {
-  const categoryTotals = {};
-
-  expenses.forEach((expense) => {
-    if (categoryTotals[expense.category]) {
-      categoryTotals[expense.category] += expense.amount;
-    } else {
-      categoryTotals[expense.category] = expense.amount;
     }
   });
 
-  const ctx = document.getElementById("categoryPieChart");
-
-  new Chart(ctx, {
+  new Chart(categoryChartCanvas, {
     type: "doughnut",
     data: {
       labels: Object.keys(categoryTotals),
       datasets: [
         {
-          label: "Category Expenses",
-          data: Object.values(categoryTotals),
-          backgroundColor: [
-            "#1F4E79",
-            "#2E75B6",
-            "#1D6A3A",
-            "#C62828"
-          ]
+          data: Object.values(categoryTotals)
         }
       ]
-    },
-    options: {
-      responsive: true
     }
   });
 }
 
-// Quick Add Expense button
-const addExpenseBtn = document.querySelector(".add-expense-btn");
-
-addExpenseBtn.addEventListener("click", () => {
-  window.location.href = "transactions.html";
-});
-
-// Run all dashboard functions
-loadKPICards();
-loadRecentTransactions();
-loadMonthlyBarChart();
-loadCategoryPieChart();
+fetchExpenses();

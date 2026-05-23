@@ -2,20 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>Dashboard - Expense Tracker</title>
 
   <link rel="stylesheet" href="css/dashboard.css" />
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
   <div class="dashboard-layout">
 
-    <!-- Sidebar -->
     <aside class="sidebar">
       <h2>Expense Tracker</h2>
 
@@ -29,62 +25,57 @@
       <button id="logoutBtn" class="logout-btn">Logout</button>
     </aside>
 
-    <!-- Main Content -->
     <main class="main-content">
 
       <header class="dashboard-header">
         <div>
           <h1>Dashboard</h1>
-          <p>Welcome back! Here is your expense summary.</p>
+          <p>Overview of your expenses</p>
         </div>
 
-        <button class="add-expense-btn">+ Add Expense</button>
+        <a href="transactions.html" class="primary-btn">+ Add Expense</a>
       </header>
 
-      <!-- KPI Cards -->
-      <section class="kpi-grid">
+      <section class="summary-cards">
 
-        <div class="kpi-card">
-          <p>This Month</p>
-          <h2 id="thisMonthTotal">₹0.00</h2>
+        <div class="summary-card">
+          <h3>This Month</h3>
+          <p id="thisMonthAmount">₹0.00</p>
         </div>
 
-        <div class="kpi-card">
-          <p>All Time Expense</p>
-          <h2 id="allTimeTotal">₹0.00</h2>
+        <div class="summary-card">
+          <h3>All Time</h3>
+          <p id="allTimeAmount">₹0.00</p>
         </div>
 
-        <div class="kpi-card">
-          <p>Average Daily Spend</p>
-          <h2 id="averageDailySpend">₹0.00</h2>
+        <div class="summary-card">
+          <h3>Average Daily</h3>
+          <p id="averageDailyAmount">₹0.00</p>
         </div>
 
-        <div class="kpi-card">
-          <p>Top Category</p>
-          <h2 id="topCategory">-</h2>
+        <div class="summary-card">
+          <h3>Top Category</h3>
+          <p id="topCategory">No data</p>
         </div>
 
       </section>
 
-      <!-- Charts -->
       <section class="charts-grid">
 
         <div class="chart-card">
-          <h3>Monthly Spending</h3>
+          <h3>Monthly Expenses</h3>
           <canvas id="monthlyBarChart"></canvas>
         </div>
 
         <div class="chart-card">
-          <h3>Category Distribution</h3>
+          <h3>Category Breakdown</h3>
           <canvas id="categoryPieChart"></canvas>
         </div>
 
       </section>
 
-      <!-- Recent Transactions -->
-      <section class="recent-card">
-
-        <div class="section-header">
+      <section class="table-card">
+        <div class="table-header">
           <h3>Recent Transactions</h3>
           <a href="transactions.html">View All</a>
         </div>
@@ -101,17 +92,17 @@
 
           <tbody id="recentTransactionsBody">
             <tr>
-              <td colspan="4">No recent transactions</td>
+              <td colspan="4" style="text-align:center;">No expenses found</td>
             </tr>
           </tbody>
         </table>
-
       </section>
 
     </main>
 
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>

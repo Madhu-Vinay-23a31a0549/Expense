@@ -1,160 +1,234 @@
-// Temporary login protection
-const isLoggedIn = localStorage.getItem("isLoggedIn");
+const API_BASE_URL = "http://localhost:5000/api";
 
-if (isLoggedIn !== "true") {
+const token = localStorage.getItem("token");
+
+if (!token) {
   alert("Please login first");
   window.location.href = "index.html";
 }
 
-// Logout
-const logoutBtn = document.getElementById("logoutBtn");
-
-logoutBtn.addEventListener("click", () => {
-  localStorage.removeItem("isLoggedIn");
-  alert("Logged out successfully");
-  window.location.href = "index.html";
-});
-
-// Temporary sample data
-// Later this will come from MySQL using backend API
-const expenses = [
-  {
-    id: 1,
-    date: "2026-05-01",
-    category: "Food",
-    description: "Lunch",
-    amount: 250
-  },
-  {
-    id: 2,
-    date: "2026-05-03",
-    category: "Transport",
-    description: "Bus pass",
-    amount: 500
-  },
-  {
-    id: 3,
-    date: "2026-05-05",
-    category: "Shopping",
-    description: "Shoes",
-    amount: 1200
-  },
-  {
-    id: 4,
-    date: "2026-05-07",
-    category: "Food",
-    description: "Dinner",
-    amount: 350
-  },
-  {
-    id: 5,
-    date: "2026-04-15",
-    category: "Utilities",
-    description: "Mobile recharge",
-    amount: 299
-  }
-];
+let expenses = [];
+let categoryChart = null;
+let dailyChart = null;
 
 // DOM elements
+const logoutBtn = document.getElementById("logoutBtn");
 const monthPicker = document.getElementById("monthPicker");
+
 const selectedMonthTotal = document.getElementById("selectedMonthTotal");
 const totalTransactions = document.getElementById("totalTransactions");
 const highestCategory = document.getElementById("highestCategory");
+
+const categoryBarChart = document.getElementById("categoryBarChart");
+const dailyLineChart = document.getElementById("dailyLineChart");
+
 const topCategoriesList = document.getElementById("topCategoriesList");
 const downloadPdfBtn = document.getElementById("downloadPdfBtn");
 
-let categoryBarChart;
-let dailyLineChart;
+// Logout
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    localStorage.clear();
+    window.location.href = "index.html";
+  });
+}
 
 // Set current month by default
-const today = new Date();
-const currentMonth = today.toISOString().slice(0, 7);
-monthPicker.value = currentMonth;
+function setCurrentMonth() {
+  if (!monthPicker) return;
 
-// Format currency
-function formatCurrency(amount) {
-  return "₹" + Number(amount).toFixed(2);
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+
+  monthPicker.value = `${year}-${month}`;
 }
 
-// Get expenses for selected month
-function getExpensesByMonth(month) {
-  return expenses.filter((expense) => expense.date.startsWith(month));
-}
+// Fetch expenses from MongoDB
+async function fetchExpenses() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/expenses`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
-// Calculate category totals
-function getCategoryTotals(monthExpenses) {
-  const categoryTotals = {};
+    const data = await response.json();
 
-  monthExpenses.forEach((expense) => {
-    if (categoryTotals[expense.category]) {
-      categoryTotals[expense.category] += expense.amount;
-    } else {
-      categoryTotals[expense.category] = expense.amount;
+    if (!data.success) {
+      alert(data.message || "Failed to load reports");
+      return;
     }
-  });
 
-  return categoryTotals;
+    expenses = data.expenses || [];
+
+    updateReports();
+  } catch (error) {
+    console.error(error);
+    alert("Server error while loading reports");
+  }
 }
 
-// Calculate daily totals
-function getDailyTotals(monthExpenses) {
-  const dailyTotals = {};
+// Get selected month expenses
+function getSelectedMonthExpenses() {
+  if (!monthPicker || !monthPicker.value) {
+    return expenses;
+  }
 
-  monthExpenses.forEach((expense) => {
-    const day = expense.date.split("-")[2];
-
-    if (dailyTotals[day]) {
-      dailyTotals[day] += expense.amount;
-    } else {
-      dailyTotals[day] = expense.amount;
-    }
-  });
-
-  return dailyTotals;
-}
-
-// Load report data
-function loadReports() {
   const selectedMonth = monthPicker.value;
-  const monthExpenses = getExpensesByMonth(selectedMonth);
 
-  const monthTotal = monthExpenses.reduce(
-    (sum, expense) => sum + expense.amount,
+  return expenses.filter((expense) => {
+    const expenseMonth = expense.expense_date.split("T")[0].slice(0, 7);
+    return expenseMonth === selectedMonth;
+  });
+}
+
+// Update reports
+function updateReports() {
+  const monthExpenses = getSelectedMonthExpenses();
+
+  updateSummaryCards(monthExpenses);
+  renderCategoryChart(monthExpenses);
+  renderDailyChart(monthExpenses);
+  renderTopCategories(monthExpenses);
+}
+
+// Summary cards
+function updateSummaryCards(monthExpenses) {
+  const total = monthExpenses.reduce(
+    (sum, expense) => sum + Number(expense.amount),
     0
   );
 
-  selectedMonthTotal.textContent = formatCurrency(monthTotal);
-  totalTransactions.textContent = monthExpenses.length;
+  const categoryTotals = {};
 
-  const categoryTotals = getCategoryTotals(monthExpenses);
+  monthExpenses.forEach((expense) => {
+    const category = expense.category_id?.name || "Other";
+    categoryTotals[category] =
+      (categoryTotals[category] || 0) + Number(expense.amount);
+  });
 
-  let topCategory = "-";
-  let highestAmount = 0;
+  let topCategoryName = "No data";
+  let topAmount = 0;
 
-  for (let category in categoryTotals) {
-    if (categoryTotals[category] > highestAmount) {
-      highestAmount = categoryTotals[category];
-      topCategory = category;
+  Object.keys(categoryTotals).forEach((category) => {
+    if (categoryTotals[category] > topAmount) {
+      topAmount = categoryTotals[category];
+      topCategoryName = category;
     }
+  });
+
+  if (selectedMonthTotal) {
+    selectedMonthTotal.textContent = `₹${total.toFixed(2)}`;
   }
 
-  highestCategory.textContent = topCategory;
+  if (totalTransactions) {
+    totalTransactions.textContent = monthExpenses.length;
+  }
 
-  renderTopCategories(categoryTotals);
-  renderCategoryBarChart(categoryTotals);
-  renderDailyLineChart(monthExpenses);
+  if (highestCategory) {
+    highestCategory.textContent = topCategoryName;
+  }
 }
 
-// Show top categories list
-function renderTopCategories(categoryTotals) {
-  topCategoriesList.innerHTML = "";
+// Category-wise spending chart
+function renderCategoryChart(monthExpenses) {
+  if (!categoryBarChart) return;
+
+  const categoryTotals = {};
+
+  monthExpenses.forEach((expense) => {
+    const category = expense.category_id?.name || "Other";
+    categoryTotals[category] =
+      (categoryTotals[category] || 0) + Number(expense.amount);
+  });
+
+  if (categoryChart) {
+    categoryChart.destroy();
+  }
+
+  categoryChart = new Chart(categoryBarChart, {
+    type: "bar",
+    data: {
+      labels: Object.keys(categoryTotals),
+      datasets: [
+        {
+          label: "Category Spending",
+          data: Object.values(categoryTotals)
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+// Daily spending trend chart
+function renderDailyChart(monthExpenses) {
+  if (!dailyLineChart) return;
+
+  const dailyTotals = {};
+
+  monthExpenses.forEach((expense) => {
+    const date = expense.expense_date.split("T")[0];
+    dailyTotals[date] = (dailyTotals[date] || 0) + Number(expense.amount);
+  });
+
+  const sortedDates = Object.keys(dailyTotals).sort();
+
+  if (dailyChart) {
+    dailyChart.destroy();
+  }
+
+  dailyChart = new Chart(dailyLineChart, {
+    type: "line",
+    data: {
+      labels: sortedDates,
+      datasets: [
+        {
+          label: "Daily Spending",
+          data: sortedDates.map((date) => dailyTotals[date]),
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+// Top categories list
+function renderTopCategories(monthExpenses) {
+  if (!topCategoriesList) return;
+
+  const categoryTotals = {};
+
+  monthExpenses.forEach((expense) => {
+    const category = expense.category_id?.name || "Other";
+    categoryTotals[category] =
+      (categoryTotals[category] || 0) + Number(expense.amount);
+  });
 
   const sortedCategories = Object.entries(categoryTotals).sort(
     (a, b) => b[1] - a[1]
   );
 
+  topCategoriesList.innerHTML = "";
+
   if (sortedCategories.length === 0) {
-    topCategoriesList.innerHTML = "<li>No category data available</li>";
+    topCategoriesList.innerHTML = "<li>No category data found</li>";
     return;
   }
 
@@ -162,135 +236,64 @@ function renderTopCategories(categoryTotals) {
     const li = document.createElement("li");
 
     li.innerHTML = `
-      <span class="category-name">${category}</span>
-      <span class="category-amount">${formatCurrency(amount)}</span>
+      <span>${category}</span>
+      <strong>₹${Number(amount).toFixed(2)}</strong>
     `;
 
     topCategoriesList.appendChild(li);
   });
 }
 
-// Bar chart for category spending
-function renderCategoryBarChart(categoryTotals) {
-  const ctx = document.getElementById("categoryBarChart");
-
-  if (categoryBarChart) {
-    categoryBarChart.destroy();
-  }
-
-  categoryBarChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: Object.keys(categoryTotals),
-      datasets: [
-        {
-          label: "Category Spending",
-          data: Object.values(categoryTotals),
-          backgroundColor: "#2E75B6"
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          display: true
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  });
+// Month change
+if (monthPicker) {
+  monthPicker.addEventListener("change", updateReports);
 }
-
-// Line chart for daily spending trend
-function renderDailyLineChart(monthExpenses) {
-  const dailyTotals = getDailyTotals(monthExpenses);
-
-  const sortedDays = Object.keys(dailyTotals).sort((a, b) => Number(a) - Number(b));
-
-  const ctx = document.getElementById("dailyLineChart");
-
-  if (dailyLineChart) {
-    dailyLineChart.destroy();
-  }
-
-  dailyLineChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: sortedDays.map((day) => "Day " + day),
-      datasets: [
-        {
-          label: "Daily Spending",
-          data: sortedDays.map((day) => dailyTotals[day]),
-          borderColor: "#1F4E79",
-          backgroundColor: "#2E75B6",
-          tension: 0.3
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          display: true
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  });
-}
-
-// Change report when month changes
-monthPicker.addEventListener("change", loadReports);
 
 // Download PDF
-downloadPdfBtn.addEventListener("click", () => {
-  const { jsPDF } = window.jspdf;
+if (downloadPdfBtn) {
+  downloadPdfBtn.addEventListener("click", () => {
+    const monthExpenses = getSelectedMonthExpenses();
 
-  const doc = new jsPDF();
+    if (monthExpenses.length === 0) {
+      alert("No report data to download");
+      return;
+    }
 
-  const selectedMonth = monthPicker.value;
-  const monthExpenses = getExpensesByMonth(selectedMonth);
-  const categoryTotals = getCategoryTotals(monthExpenses);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-  const monthTotal = monthExpenses.reduce(
-    (sum, expense) => sum + expense.amount,
-    0
-  );
+    doc.setFontSize(18);
+    doc.text("Expense Tracker Report", 20, 20);
 
-  doc.setFontSize(18);
-  doc.text("Expense Tracker - Monthly Report", 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Month: ${monthPicker.value}`, 20, 32);
 
-  doc.setFontSize(12);
-  doc.text(`Month: ${selectedMonth}`, 20, 35);
-  doc.text(`Total Expenses: ${formatCurrency(monthTotal)}`, 20, 45);
-  doc.text(`Total Transactions: ${monthExpenses.length}`, 20, 55);
+    let y = 45;
 
-  doc.text("Top Categories:", 20, 75);
+    monthExpenses.forEach((expense, index) => {
+      const date = new Date(expense.expense_date).toLocaleDateString("en-IN");
+      const category = expense.category_id?.name || "Other";
+      const description = expense.description || "-";
+      const amount = Number(expense.amount).toFixed(2);
 
-  let y = 85;
+      doc.text(
+        `${index + 1}. ${date} | ${category} | ${description} | Rs.${amount}`,
+        20,
+        y
+      );
 
-  Object.entries(categoryTotals)
-    .sort((a, b) => b[1] - a[1])
-    .forEach(([category, amount]) => {
-      doc.text(`${category}: ${formatCurrency(amount)}`, 25, y);
-      y += 10;
+      y += 8;
+
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
     });
 
-  if (monthExpenses.length === 0) {
-    doc.text("No expenses available for this month.", 25, y);
-  }
-
-  doc.save(`expense-report-${selectedMonth}.pdf`);
-});
+    doc.save("expense-report.pdf");
+  });
+}
 
 // Initial load
-loadReports();
+setCurrentMonth();
+fetchExpenses();
