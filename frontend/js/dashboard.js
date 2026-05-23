@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = "/api";
 
 const token = localStorage.getItem("token");
 const user = JSON.parse(localStorage.getItem("user"));
@@ -11,9 +11,9 @@ if (!token) {
 const logoutBtn = document.getElementById("logoutBtn");
 const recentTransactionsBody = document.getElementById("recentTransactionsBody");
 
-const thisMonthAmount = document.getElementById("thisMonthAmount");
-const allTimeAmount = document.getElementById("allTimeAmount");
-const averageDailyAmount = document.getElementById("averageDailyAmount");
+const thisMonthTotal = document.getElementById("thisMonthTotal");
+const allTimeTotal = document.getElementById("allTimeTotal");
+const averageDailySpend = document.getElementById("averageDailySpend");
 const topCategory = document.getElementById("topCategory");
 
 let expenses = [];
