@@ -1,11 +1,15 @@
 const express = require("express");
-const pool = require("./config/db");
 const cors = require("cors");
 const path = require("path");
+const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
+const expenseRoutes = require("./routes/expense.routes");
 require("dotenv").config();
 
 const app = express();
+
+// Connect MongoDB
+connectDB();
 
 // Middlewares
 app.use(cors());
@@ -15,7 +19,11 @@ app.use(express.urlencoded({ extended: true }));
 // Serve frontend files
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-// Test route
+// API routes
+app.use("/api/auth", authRoutes);
+app.use("/api/expenses", expenseRoutes);
+
+// Health route
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
@@ -23,30 +31,18 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-app.get("/api/db-test", async (req, res) => {
-  try {
-    const [rows] = await pool.query("SELECT 1 + 1 AS result");
-
-    res.json({
-      success: true,
-      message: "Database connected successfully",
-      result: rows[0].result
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Database connection failed",
-      error: error.message
-    });
-  }
+// DB test route
+app.get("/api/db-test", (req, res) => {
+  res.json({
+    success: true,
+    message: "MongoDB route is working"
+  });
 });
 
-// Page route for login page
+// Login page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
-
-app.use("/api/auth", authRoutes);
 
 // 404 route
 app.use((req, res) => {
